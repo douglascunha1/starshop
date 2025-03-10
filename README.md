@@ -527,3 +527,6 @@ export default class extends Controller {
 ```
 
 - Veja que o data-action é utilizado para chamar o método greet da controller hello quando o botão é clicado. Dessa forma, ao clicar no botão, um alerta será exibido.
+
+- Um problema com essa abordagem é que quando atualizamos a página, é realizado um full reload, ou seja, carrega tudo o que pode tornar o site lento. Para resolver isso, o pesosal que criou o Stimulus também criou o Turbo que é um pacote que faz com que o site seja carregado de forma assíncrona, ou seja, apenas o conteúdo que foi modificado é carregado. Para instalar o pacote basta digitar composer require symfony/ux-turbo. Após instalado, é criado um arquivo chamado importmap.php que contém algumas configurações do Turbo. Também é criado um arquivo chamado controllers.json dentro de assets que contém as controllers do Stimulus e configurações. Com isso, ao interagir com o site, apenas o conteúdo que foi modificado é carregado, tornando o site mais rápido.
+
