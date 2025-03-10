@@ -13,8 +13,16 @@ class MainController extends AbstractController
     {
         $starshipCount = 457;
 
+        $myShip = [
+            'name' => 'USS LeafyCruiser (NCC-0001)',
+            'class' => 'Garden',
+            'captain' => 'Jean-Luc Pickles',
+            'status' => 'under construction',
+        ];
+
         return $this->render('main/homepage.html.twig', [
-            'numberOfStarships' => $starshipCount
+            'numberOfStarships' => $starshipCount,
+            'myShip' => $myShip,
         ]);
     }
 }
