@@ -1,0 +1,13 @@
+# Symfony - Anotações gerais
+
+- No Symfony, todo método deve retornar um response, sendo esse response um objeto
+
+- As rotas são definidas usando attributes(#[Route('endpont')]), ou seja, basta utilizar o namespace use Symfony\Component\Routing\Attribute\Route;
+
+- Symfony Flex é um plugin ou pacote do composer que atribui dois super poderes ao composer, aliases e recipes(receitas). Aliases pode ser entidido da seguinte forma, imagine que você deseja baixar o pacote symfony/http-client, ao invés de digitar tudo isso basta digitar composer require http-client, ou seja, o flex irá traduzir para o nome do pacote original. Para saber todas as receitas basta visitar o [symfony/recipes](https://github.com/symfony/recipes/blob/flex/main/RECIPES.md). Já recipes(receitas) funciona da seguinte forma, imagine que você adicionou um novo pacote, pode ser que esse pacote tenha uma recipe(receita), o que basicamente é um conjunto de arquivos que serão adicionados no nosso projeto, dessa forma, todos os arquivos que são inicializados nos diretórios bin, config e public são oriundos de recipes e pacotes que instalamos. No arquivo composer.json temos o pacote symfony/framework-bundle que é um core package do framework symfony. Se acessarmos o link [symfony/framework-bundle](https://github.com/symfony/recipes/tree/main/symfony/framework-bundle) veremos várias versões desse pacote, ao abrir o diretório de alguma dessas versões veremos alguns arquivos e diretórios como config, public e src, além dos arquivos manifest.json e post-install.txt. Ou seja, tudo isso vem dessa recipe.
+
+- Para visualizar nossas recipes, basta utilizar o comando composer recipes que irá listar todas as recipes disponíveis. Para verificar os detalhes de uma recipe específica, basta digitar composer recipes nome_da_recipe, por exemplo, composer recipes symfony/framework-bundle, o resultado será os diretórios e arquivos que essa recipe gera.
+
+- Para verificarmos se a padronização do nosso código está de acordo com os padrões estabelecidos para o desenvolvimento usando php, iremos instalar um package chamado cs-fixer-shim usando o comando composer require cs-fixer-shim. Ao rodar o comando, sera baixado um arquivo chamado .php-cs-fixer.dist.php que é o arquivo de configuração utilizado para ajustar o nosso código. Para executar o cs-fixer-shim basta digitar o comando ./vendor/bin/php-cs-fixer fix que irá ajustar a padronização do nosso código.
+
+- Twig é um template engine semelhante ao blade do laravel
