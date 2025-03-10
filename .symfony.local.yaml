@@ -1,0 +1,4 @@
+# Quando o servidor é iniciado, o symfony irá executar o tailwindcss em background(apenas local).
+workers:
+  tailwind:
+    cmd: ['symfony', 'console', 'tailwind:build', '--watch']

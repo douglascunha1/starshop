@@ -487,3 +487,16 @@ class StarshipController extends AbstractController
 ```
 
 - No entanto, se atualizarmos a página teremos um erro informando que o pacote symfony/asset não está instalado. Dessa forma, é necessário instalar esse pacote usando o comando composer require symfony/asset. Com isso o erro será resolvido e o asset será acessado de forma correta. Uma coisa interessante a respeito a respeito do asset é que ele aplica version hash nos assets(css, js, imagens) para evitar cache, ou seja, toda vez que o asset é modificado, o hash é alterado e o cache é atualizado.
+
+- E se quisermos utilizar tailwindcss? Bem, é possível utilizando o pacote symfonycasts/tailwind-bundle que é um pacote que instala o tailwindcss no nosso projeto. Para baixar basta digitar o comando composer require symfonycasts/tailwind-bundle. Após isso, basta executar o tailwind digitando o comando ./bin/console tailwind:init que irá alterar o nosso arquivo app.css localizado em assets/styles/app.css para adicionar as diretivas do tailwind. Por fim, cria um arquivo tailwind.config.js que é o arquivo de configuração do tailwind.
+
+- Para executarmos o tailwindcss basta digitar o comando ./bin/console tailwind:build -w que irá compilar o tailwindcss e ficar escutando as alterações no arquivo app.css.
+
+- No Symfony, é possível criar arquivos de configurações, nesse caso, criamos o arquivo .symfony.local.yaml que possui um worker para executar o tailwindcss em background para nós, a configuração foi dada por:
+
+```yaml
+# Quando o servidor é iniciado, o symfony irá executar o tailwindcss em background(apenas local).
+workers:
+  tailwind:
+    cmd: ['symfony', 'console', 'tailwind:build', '--watch']
+```
