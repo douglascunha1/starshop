@@ -388,3 +388,75 @@ class StarshipRepository
 ```
 
 - Ou seja, delimitamos o valor que se espear passar na rota como argumento utilizando o código {id<\d+>}, ou seja, esperamos um valor inteiro. Além disso, utilizamos o método find na nossa repository para buscar o id passado como parâmetro. Caso o id não seja encontrado, é lançado uma exceção(404) informando que o id não foi encontrado. Por fim, delimitamos o método que a rota aceita, no caso, apenas o método GET.
+
+- Podemos gerar URLs de forma dinâmica, por exemplo, ao clicar em um link que redireciona para outra página, podemos utilizar o método path('nome_da_rota') que irá gerar a URL da rota de forma dinâmica. Caso a rota possua wildcards, basta passar o valor como segundo parâmetro do método path, por exemplo, path('nome_da_rota', ['id' => $id]). O código final seria algo como:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Repository\StarshipRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class StarshipController extends AbstractController
+{
+    #[Route('/starships/{id<\d+>}', name: 'app_starship_show')] // Define o nome da rota
+    public function show(int $id, StarshipRepository $repository): Response
+    {
+        $ship = $repository->find($id);
+
+        if (!$ship) {
+            throw $this->createNotFoundException('Starship not found');
+        }
+
+        return $this->render('starship/show.html.twig', [
+            'ship' => $ship,
+        ]);
+    }
+}
+
+{% extends 'base.html.twig' %}
+
+{% block title %}Starshop: Beam up some parts!{% endblock %}
+
+{% block body %}
+
+<h1>Starshop: your monopoly-busting option for Starship parts</h1>
+
+<div>
+    Browse through {{ ships|length }} starships!
+</div>
+
+<div>
+    <h2>My Ship</h2>
+
+    <table>
+        <tr>
+            <th>Name</th>
+            <td>
+                <a href="{{ path('app_starship_show', { id: myShip.id }) }}"> <!-- Gera a URL dinamicamente -->
+                    {{ myShip.name }}
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <th>Class</th>
+            <td>{{ myShip.class }}</td>
+        </tr>
+        <tr>
+            <th>Captain</th>
+            <td>{{ myShip.captain }}</td>
+        </tr>
+        <tr>
+            <th>Status</th>
+            <td>{{ myShip.status }}</td>
+        </tr>
+    </table>
+</div>
+{% endblock %}
+```
