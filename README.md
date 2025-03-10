@@ -19,3 +19,90 @@
 - Para debugar o código com o Symfony, basta instalar o pacote debug que instala outros pacotes como dependência. Para instalar o pacote debug, basta digitar composer require debug. O pacote debug instala também o pacote monolog que é um pacote de logs que é utilizado para debugar o código. Para visualizar os logs, basta acessar o diretório var/log/dev.log. Para visualizar os logs em tempo real, basta digitar tail -f var/log/dev.log. 
 
 - O comando ./bin/console exibe todos os comandos disponíveis no console do Symfony. É possível adicionar os nossos próprios comandos, mas veremos mais sobre isso lá para frente. Ao executar um comando específico, como ./bin/console debug:router, teremos informações sobre as rotas disponíveis no nosso projeto. Outro comando interessante é o ./bin/console debug:twig que exibe todas as informações e funcionalidades disponíveis no twig.
+
+- Se quisermos criar uma API JSON com o Symfony, podemos utilizar a API-PLATFORM que é um framework criando em cima do Symfony. No código abaixo, temos a nossa controller e a nossa model, no entanto, estamos tentando retornar um array de objetos como JSON, isso resultará em uma estrutura vazia, visto que o Symfony não consegue serializar objetos. Para resolver esse problema, basta instalar o pacote symfony/serializer que é um pacote que serializa objetos. Para instalar o pacote, basta digitar composer require serializer. Após isso, o código irá retornar um JSON com os objetos serializados.
+
+```php
+<?php
+
+namespace App\Controller;
+
+use App\Model\Starship;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class StarshipApiController extends AbstractController
+{
+    #[Route('/api/starships')]
+    public function getCollection(): Response
+    {
+        $starships = [
+            new Starship(
+                1,
+                'USS LeafyCruiser (NCC-0001)',
+                'Garden',
+                'Jean-Luc Pickles',
+                'taken over by Q'
+            ),
+            new Starship(
+                2,
+                'USS Espresso (NCC-1234-C)',
+                'Latte',
+                'James T. Quick!',
+                'repaired',
+            ),
+            new Starship(
+                3,
+                'USS Wanderlust (NCC-2024-W)',
+                'Delta Tourist',
+                'Kathryn Journeyway',
+                'under construction',
+            ),
+        ];
+
+        return $this->json($starships);
+    }
+}
+
+<?php
+
+namespace App\Model;
+
+class Starship
+{
+    public function __construct(
+        private int $id,
+        private string $name,
+        private string $class,
+        private string $captain,
+        private string $status,
+    ) {
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getClass(): string
+    {
+        return $this->class;
+    }
+
+    public function getCaptain(): string
+    {
+        return $this->captain;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+}
+```
