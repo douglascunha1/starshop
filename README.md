@@ -286,4 +286,105 @@ class MainController extends AbstractController
 {% endblock %}
 ```
 
+- Podemos definir wildcards nas rotas, por exemplo, imagine que queremos acessar uma rota que recebe um id como parâmetro, para isso, basta adicionar o wildcard na rota, por exemplo, #[Route('/api/starships/{id}')]. Para acessar o id passado como parâmetro, basta adicionar o argumento na controller, por exemplo, public function get(int $id): Response. Dessa forma, o id passado como parâmetro será acessado na controller. Além disso, é possível delimitar o tipo de dado que se espera passar como parâmetro, no caso de um id, é esperado um int, o código final seria algo como:
 
+```php
+<?php
+
+namespace App\Controller;
+
+use App\Repository\StarshipRepository;
+use Psr\Log\LoggerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/api/starships')]
+class StarshipApiController extends AbstractController
+{
+    public function __construct()
+    {
+    }
+
+    #[Route('', methods: ['GET'])]
+    public function getCollection(StarshipRepository $repository): Response
+    {
+
+        $starships = $repository->findAll();
+
+        return $this->json($starships);
+    }
+
+    #[Route('/{id<\d+>}', methods: ['GET'])]
+    public function get(int $id, StarshipRepository $repository): Response
+    {
+        $starship = $repository->find($id);
+
+        if (!$starship) {
+            throw $this->createNotFoundException('Starship not found');
+        }
+
+        return $this->json($starship);
+    }
+}
+
+<?php
+
+namespace App\Repository;
+
+use App\Model\Starship;
+use Psr\Log\LoggerInterface;
+
+class StarshipRepository
+{
+    public function __construct(private LoggerInterface $logger)
+    {
+    }
+
+    public function findAll(): array
+    {
+        $this->logger->info('Starship collection retrieved');
+
+        return [
+            new Starship(
+                1,
+                'USS LeafyCruiser (NCC-0001)',
+                'Garden',
+                'Jean-Luc Pickles',
+                'taken over by Q'
+            ),
+            new Starship(
+                2,
+                'USS Espresso (NCC-1234-C)',
+                'Latte',
+                'James T. Quick!',
+                'repaired',
+            ),
+            new Starship(
+                3,
+                'USS Wanderlust (NCC-2024-W)',
+                'Delta Tourist',
+                'Kathryn Journeyway',
+                'under construction',
+            ),
+        ];
+    }
+
+    public function find(int $id): ?Starship
+    {
+        $this->logger->info('Starship retrieved', ['id' => $id]);
+
+        $starships = $this->findAll();
+
+        foreach ($starships as $starship) {
+            if ($starship->getId() === $id) {
+                return $starship;
+            }
+        }
+
+        return null;
+    }
+}
+```
+
+- Ou seja, delimitamos o valor que se espear passar na rota como argumento utilizando o código {id<\d+>}, ou seja, esperamos um valor inteiro. Além disso, utilizamos o método find na nossa repository para buscar o id passado como parâmetro. Caso o id não seja encontrado, é lançado uma exceção(404) informando que o id não foi encontrado. Por fim, delimitamos o método que a rota aceita, no caso, apenas o método GET.
