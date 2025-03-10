@@ -460,3 +460,30 @@ class StarshipController extends AbstractController
 </div>
 {% endblock %}
 ```
+
+- Um componente bem interessante do Symfony é o Asset-Mapper que é um componente que mapeia os assets(css, js, imagens) do nosso projeto. Para instalar o asset-mapper, basta digitar composer require symfony/asset-mapper. Após instalado, o asset-mapper irá criar um diretório chamado assets que irá conter um outro diretório chamado css com um arquivo app.css, além disso, é criado um arquivo app.js dentro do diretório assets. O diretório assets é mapeado como se estivesse dentro do diretório public, dessa forma nossas imagens, arquivos css e js se tornam públicos para acesso.
+
+- Para visualiar os assets disponíveis basta executar o comando ./bin/console debug:asset que irá listar todos os assets disponíveis. Note que há duas colunas, Logical Path e Filesystem Path. A coluna Logical Path é o caminho lógico do asset, ou seja, o caminho que utilizamos para acessar o asset, por exemplo, /assets/css/app.css. A coluna Filesystem Path é o caminho físico do asset, ou seja, o caminho real do asset, por exemplo, /var/www/html/assets/css/app.css. Para acessar o asset, basta utilizar o método asset('caminho_do_asset') que irá gerar o caminho do asset de forma dinâmica. O código final seria algo como:
+
+```php
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Welcome!{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        {% block stylesheets %}
+        {% endblock %}
+
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body>
+        <img src="{{ asset('images/starshop-logo.png') }}", alt="Starshop Logo"> <!-- Acessa o asset de forma dinâmica -->
+        {% block body %}{% endblock %}
+    </body>
+</html>
+```
+
+- No entanto, se atualizarmos a página teremos um erro informando que o pacote symfony/asset não está instalado. Dessa forma, é necessário instalar esse pacote usando o comando composer require symfony/asset. Com isso o erro será resolvido e o asset será acessado de forma correta. Uma coisa interessante a respeito a respeito do asset é que ele aplica version hash nos assets(css, js, imagens) para evitar cache, ou seja, toda vez que o asset é modificado, o hash é alterado e o cache é atualizado.
