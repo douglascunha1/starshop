@@ -500,3 +500,30 @@ workers:
   tailwind:
     cmd: ['symfony', 'console', 'tailwind:build', '--watch']
 ```
+
+- Como deixar nossa interface interativa? Bem, podemos utilizar um framework bem legal chamado Stimulus que é um framework JavaScript utilizado na construção de interfaces dinâmicas. Para baixar o pacote basta digitar no terminal composer require symfony/stimulus-bundle. Após instalado, temos que o arquivo app.js será modificado para importar o arquivo bootstrap.js, além da criação de quatro novos arquivos chamados bootstrap.js, controllers.json, hello_controller.js e csrf_protection_controller no diretório controllers.
+
+- Mas como funciona essas controllers do stimulus? Bem, funciona da seguinte forma, é adicionado um atributo chamado data-controller no elemento que desejamos adicionar a interatividade, por exemplo, imagine que queremos adicionar um botão que ao ser clicado exibe um alerta, para isso, basta adicionar o atributo data-controller="hello" no botão e criar um arquivo chamado hello_controller.js no diretório controllers com o seguinte conteúdo:
+
+```javascript
+import { Controller } from '@hotwired/stimulus';
+
+export default class extends Controller {
+    connect() {
+        console.log('Hello from Stimulus!');
+    }
+
+    greet() {
+        alert('Hello from Stimulus!');
+    }
+}
+```
+
+- Ou seja, o método connect é executado quando o elemento é conectado ao DOM e o método greet é executado quando o botão é clicado. Para adicionar o botão, basta adicionar o código abaixo no arquivo twig:
+
+```php
+<!-- evento de clique chama o método greet da controller hello_controller -->
+<button data-controller="hello" data-action="click->hello#greet">Greet</button>
+```
+
+- Veja que o data-action é utilizado para chamar o método greet da controller hello quando o botão é clicado. Dessa forma, ao clicar no botão, um alerta será exibido.
