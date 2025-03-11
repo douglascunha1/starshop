@@ -710,15 +710,13 @@ DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&ch
 - Para inserir dados fakes no banco de dados, podemos utilizar algo chamado fixtures que são classes que inserem dados fakes no banco de dados. Para instalar o pacote de fixtures, basta digitar `composer require orm-fixtures --dev`. Note que instalamos como uma dependência de desenvolvimento.
 - Ao executar o comando `symfony console make:fixtures` será criado um arquivo chamado AppFixtures.php que contém um método chamado load que é responsável por inserir os dados fakes no banco de dados.
 - Abaixo temos um exemplo de como inserir dados fakes no banco de dados.
+
 ```php
 <?php
 
 namespace App\DataFixtures;
 
-use App\Entity\Starship;
-use App\Model\StarshipStatusEnum;
-use Doctrine\Bundle\FixturesBundle\Fixture;
-use Doctrine\Persistence\ObjectManager;
+use App\Entity\Starship;use App\Entity\StarshipStatusEnum;use Doctrine\Bundle\FixturesBundle\Fixture;use Doctrine\Persistence\ObjectManager;
 
 class AppFixtures extends Fixture
 {
@@ -745,7 +743,7 @@ class AppFixtures extends Fixture
         $ship3->setStatus(StarshipStatusEnum::WAITING);
         $ship3->setArrivedAt(new \DateTimeImmutable('-1 month'));
 
-        // Persiste as entidades
+        // Persiste as entidades(colocando-as na fila(queue) para serem salvas)
         $manager->persist($ship1);
         $manager->persist($ship2);
         $manager->persist($ship3);
@@ -759,3 +757,131 @@ class AppFixtures extends Fixture
 - Note que instanciamos a entidade Starship 3 vezes e setamos os seus valores, em seguida, usamos o método persist para persistir as entidades e o método flush para salvar no banco de dados.
 - Para executar as fixtures, basta digitar `symfony console doctrine:fixtures:load`.
 - Para verificar se os dados foram inseridos corretamente, basta digitar `symfony console doctrine:query:sql 'select * from starship'`.
+
+- Podemos utilizar o DQL (Doctrine Query Language) para fazer queries no banco de dados. Execute o comando `symfony console doctrine:query:dql 'select s from App\Entity\Starship s'` para listar todas as entidades da tabela Starship. O resultado será um array de objetos Starship.
+- Podemos utilizar o DQL na nossa controller para construir uma query de busca, vejamos:
+```php
+<?php
+
+namespace App\Controller;
+
+use App\Repository\StarshipRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+class MainController extends AbstractController
+{
+    #[Route('/', name: 'app_main_homepage')]
+    public function homepage(
+        EntityManagerInterface $em, # Injeta o service entity manager
+        HttpClientInterface $client,
+        CacheInterface $issLocationPool,
+    ): Response {
+        $ships = $em->createQuery('SELECT s FROM App\Entity\Starship s') # Query DQL
+            ->getResult(); # Retorna um array de objetos
+        $myShip = $ships[array_rand($ships)];
+
+        // Primeiro argumento é a chave do cache e o segundo é uma função anônima que retorna os dados da requisição
+        $issData = $issLocationPool->get('iss_location_data', function () use ($client): array {
+            $response = $client->request('GET', 'https://api.wheretheiss.at/v1/satellites/25544');
+
+            return $response->toArray();
+        });
+
+        return $this->render('main/homepage.html.twig', [
+            'myShip' => $myShip,
+            'ships' => $ships,
+            'issData' => $issData,
+        ]);
+    }
+}
+```
+
+- Note que no exemplos acima fizemos uso da interface EntityManagerInterface para fazer queries no banco de dados. O método createQuery é utilizado para criar uma query DQL e o método getResult é utilizado para retornar um array de objetos.
+- No entanto, podemos utilizar o createQueryBuilder para construir queries de forma mais dinâmica, vejamos:
+```php
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Starship;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+class MainController extends AbstractController
+{
+    #[Route('/', name: 'app_main_homepage')]
+    public function homepage(
+        EntityManagerInterface $em,
+        HttpClientInterface $client,
+        CacheInterface $issLocationPool,
+    ): Response {
+        $ships = $em->createQueryBuilder('SELECT s FROM App\Entity\Starship s')
+            ->select('s') # Seleciona a entidade
+            ->from(Starship::class, 's') # Define a entidade
+            ->getQuery() # Retorna a query
+            ->getResult(); # Retorna um array de objetos
+
+        $myShip = $ships[array_rand($ships)];
+
+        // Primeiro argumento é a chave do cache e o segundo é uma função anônima que retorna os dados da requisição
+        $issData = $issLocationPool->get('iss_location_data', function () use ($client): array {
+            $response = $client->request('GET', 'https://api.wheretheiss.at/v1/satellites/25544');
+
+            return $response->toArray();
+        });
+
+        return $this->render('main/homepage.html.twig', [
+            'myShip' => $myShip,
+            'ships' => $ships,
+            'issData' => $issData,
+        ]);
+    }
+}
+```
+
+- Com o createQueryBuilder podemos construir queries de forma mais dinâmica, por exemplo, podemos adicionar filtros, ordenar os resultados, limitar a quantidade de resultados, entre outras coisas.
+- Podemos utilizar métodos como o find para buscar registros no banco de dados, vejamos:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Entity\Starship;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class StarshipController extends AbstractController
+{
+    #[Route('/starships/{id<\d+>}', name: 'app_starship_show')]
+    public function show(
+        int $id,
+        EntityManagerInterface $em,
+    ): Response {
+        $ship = $em->find(Starship::class, $id); // Busca um recurso pelo ID
+
+        if (!$ship) {
+            throw $this->createNotFoundException('Starship not found');
+        }
+
+        return $this->render('starship/show.html.twig', [
+            'ship' => $ship,
+        ]);
+    }
+}
+```
+
+- Note que o método find aceita dois argumentos, o primeiro é a entidade que queremos buscar e o segundo é o id do recurso que queremos buscar. Caso o recurso não seja encontrado, é lançado uma exceção.
+- Note também que usamos a mesma interface EntityManagerInterface para fazer a busca no banco de dados.

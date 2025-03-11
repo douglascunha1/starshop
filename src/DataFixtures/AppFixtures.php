@@ -3,7 +3,7 @@
 namespace App\DataFixtures;
 
 use App\Entity\Starship;
-use App\Model\StarshipStatusEnum;
+use App\Entity\StarshipStatusEnum;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
@@ -32,7 +32,7 @@ class AppFixtures extends Fixture
         $ship3->setStatus(StarshipStatusEnum::WAITING);
         $ship3->setArrivedAt(new \DateTimeImmutable('-1 month'));
 
-        // Persiste as entidades
+        // Persiste as entidades(colocando-as na fila(queue) para serem salvas)
         $manager->persist($ship1);
         $manager->persist($ship2);
         $manager->persist($ship3);
