@@ -643,3 +643,36 @@ class MainController extends AbstractController
 
 - E se quisermos setar configurações específicas no nossos bundles? Isso é possível. Em `config/packages` temos arquivos de configuração de cada bundle. No caso do arquivo framework.yaml temos as configurações do framework, por exemplo, a session.
 - O comando `./bin/console debug:console framework` exibe todas as configurações disponíveis no arquivo framework.yaml. Se quisermos visualizar todas as informações completas basta rodar o comando `./bin/console config:dump framework`. Se quisermos ver as configurações responsáveis apenas pelo cache, podemos rodar o comando `./bin/console config:dump framework cache`.
+
+- O symfony permite adicionar certas configurações a depender de qual ambiente estamos trabalhando, por exemplo, prod e env. No código abaixo usamos a sintaxe where@prod para adicionar uma configuração apenas para o ambiente de produção.
+```yaml
+# Arquivo cache.yaml
+framework:
+    cache:
+        # Unique name of your app: used to compute stable namespaces for cache keys.
+        #prefix_seed: your_vendor_name/app_name
+
+        # The "app" cache stores to the filesystem by default.
+        # The data in this cache should persist between deploys.
+        # Other options include:
+
+        # Redis
+        #app: cache.adapter.redis
+        #default_redis_provider: redis://localhost
+
+        # APCu (not recommended with heavy random-write workloads as memory fragmentation can cause perf issues)
+        #app: cache.adapter.apcu
+
+        app: cache.adapter.array
+
+        # Namespaced pools use the above "app" backend by default
+        pools:
+            iss_location_pool:
+                default_lifetime: 5 # 5 seconds
+
+
+when@prod: # Apenas produção
+    framework:
+        cache:
+            app: cache.adapter.filesystem
+```
