@@ -1732,3 +1732,4 @@ class StarshipController extends AbstractController
 ```
 
 - Note que substituímos o id pelo slug na rota e no href do link. Note também que foi adicionado um MapEntity para mapear o parâmetro da rota para o atributo da entidade.
+- Algo muito importante é o fato de setarmos manualmente a entidade Starship no método show, isso é necessário para que o mapeamento funcione corretamente. Mas Starship não é um service, como isso pode ser possível? Bem, para resolver isso o Symfony faz uso de algo chamado Controller Value Resolvers que injeta automaticamente a entidade e o repositório da entidade no método show.
