@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Starship;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\StarshipRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -14,17 +14,14 @@ class MainController extends AbstractController
 {
     #[Route('/', name: 'app_main_homepage')]
     public function homepage(
-        EntityManagerInterface $em,
+        StarshipRepository $repository,
         HttpClientInterface $client,
         CacheInterface $issLocationPool,
     ): Response {
-        $ships = $em->createQueryBuilder('SELECT s FROM App\Entity\Starship s')
-            ->select('s')
-            ->from(Starship::class, 's')
-            ->getQuery()
-            ->getResult();
+        // Busca todos os registros da entidade Starship
+        $ships = $repository->findIncomplete();
 
-        $myShip = $ships[array_rand($ships)];
+        $myShip = $repository->findMyShip();
 
         // Primeiro argumento é a chave do cache e o segundo é uma função anônima que retorna os dados da requisição
         $issData = $issLocationPool->get('iss_location_data', function () use ($client): array {

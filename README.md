@@ -885,3 +885,140 @@ class StarshipController extends AbstractController
 
 - Note que o método find aceita dois argumentos, o primeiro é a entidade que queremos buscar e o segundo é o id do recurso que queremos buscar. Caso o recurso não seja encontrado, é lançado uma exceção.
 - Note também que usamos a mesma interface EntityManagerInterface para fazer a busca no banco de dados.
+
+- Refatorando o projeto para usar o repository ao invés do entity manager. O repository é uma classe que contém métodos para fazer queries no banco de dados, vejamos:
+```php
+<?php
+
+namespace App\Repository;
+
+use App\Entity\Starship;
+use App\Entity\StarshipStatusEnum;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+
+/**
+ * @extends ServiceEntityRepository<Starship>
+ */
+class StarshipRepository extends ServiceEntityRepository
+{
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, Starship::class);
+    }
+
+    public function findMyShip(): Starship
+    {
+        return $this->findAll()[0];
+    }
+
+    public function findIncomplete(): array
+    {
+        return $this->createQueryBuilder('e')
+            ->where('e.status != :status')
+            ->setParameter('status', StarshipStatusEnum::COMPLETED)
+            ->getQuery()
+            ->getResult();
+    }
+
+    //    /**
+    //     * @return Starship[] Returns an array of Starship objects
+    //     */
+    //    public function findByExampleField($value): array
+    //    {
+    //        return $this->createQueryBuilder('s')
+    //            ->andWhere('s.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->orderBy('s.id', 'ASC')
+    //            ->setMaxResults(10)
+    //            ->getQuery()
+    //            ->getResult()
+    //        ;
+    //    }
+
+    //    public function findOneBySomeField($value): ?Starship
+    //    {
+    //        return $this->createQueryBuilder('s')
+    //            ->andWhere('s.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->getQuery()
+    //            ->getOneOrNullResult()
+    //        ;
+    //    }
+}
+
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Starship;
+use App\Repository\StarshipRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+class MainController extends AbstractController
+{
+    #[Route('/', name: 'app_main_homepage')]
+    public function homepage(
+        StarshipRepository $repository,
+        HttpClientInterface $client,
+        CacheInterface $issLocationPool,
+    ): Response {
+        // Busca todos os registros da entidade Starship
+        $ships = $repository->findIncomplete();
+
+        $myShip = $repository->findMyShip();
+
+        // Primeiro argumento é a chave do cache e o segundo é uma função anônima que retorna os dados da requisição
+        $issData = $issLocationPool->get('iss_location_data', function () use ($client): array {
+            $response = $client->request('GET', 'https://api.wheretheiss.at/v1/satellites/25544');
+
+            return $response->toArray();
+        });
+
+        return $this->render('main/homepage.html.twig', [
+            'myShip' => $myShip,
+            'ships' => $ships,
+            'issData' => $issData,
+        ]);
+    }
+}
+
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Entity\Starship;
+use App\Repository\StarshipRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class StarshipController extends AbstractController
+{
+    #[Route('/starships/{id<\d+>}', name: 'app_starship_show')]
+    public function show(
+        int $id,
+        StarshipRepository $repository,
+    ): Response {
+        // Busca um recurso pelo ID
+        $ship = $repository->find($id);
+
+        if (!$ship) {
+            throw $this->createNotFoundException('Starship not found');
+        }
+
+        return $this->render('starship/show.html.twig', [
+            'ship' => $ship,
+        ]);
+    }
+}
+```
+
+- Note que usamos o repository via autowiring no construtor, dado que o repository é um service.
