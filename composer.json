@@ -17,6 +17,7 @@
         "php-cs-fixer/shim": "^3.71",
         "phpdocumentor/reflection-docblock": "^5.6",
         "phpstan/phpdoc-parser": "^2.1",
+        "stof/doctrine-extensions-bundle": "^1.13",
         "symfony/asset": "7.2.*",
         "symfony/asset-mapper": "7.2.*",
         "symfony/console": "7.2.*",

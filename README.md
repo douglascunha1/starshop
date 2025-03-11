@@ -1405,3 +1405,179 @@ class MainController extends AbstractController
 
 - Para adicionar novos campos a entidade, basta executar o comando `symfony console make:entity nome_da_entidade` e prossegui com as instruções.
 - Foram adicionados 3 novos campos na tabela, slug, updated_at e created_at, após a criação desses 3 novos campos foi executado o comando `symfony console make:migration` para criar a migração e em seguida o comando `symfony console doctrine:migrations:migrate` para aplicar a migração.
+- Para gerar automaticamente esses campos, há um pacote chamado `stof/doctrine-extensions-bundle`, para instalar basta digitar `composer require stof/doctrine-extensions-bundle`. Esse pacote gera um arquivo chamado stof_doctrine_extensions.yaml que contém as configurações necessárias para gerar os campos automaticamente. No entanto, precisamos setar algumas configurações, veja abaixo:
+```yaml
+# Read the documentation: https://symfony.com/doc/current/bundles/StofDoctrineExtensionsBundle/index.html
+# See the official DoctrineExtensions documentation for more details: https://github.com/doctrine-extensions/DoctrineExtensions/tree/main/doc
+stof_doctrine_extensions:
+    default_locale: en_US
+    orm: # Configurações para o ORM
+        default: # Configurações padrão
+            timestampable: true # Habilita o campo timestampable
+            sluggable: true # Habilita o campo sluggable
+```
+
+- Após isso, configuramos nossa entidade chamada Starship para usar os campos gerados automaticamente, veja abaixo:
+```php
+<?php
+
+namespace App\Entity;
+
+use App\Repository\StarshipRepository;
+use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation\Slug;
+use Gedmo\Mapping\Annotation\Timestampable;
+
+#[ORM\Entity(repositoryClass: StarshipRepository::class)]
+class Starship
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\Column]
+    private ?string $name = null;
+
+    #[ORM\Column]
+    private ?string $class = null;
+
+    #[ORM\Column]
+    private ?string $captain = null;
+
+    #[ORM\Column]
+    private ?StarshipStatusEnum $status = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $arrivedAt = null;
+
+    #[ORM\Column(unique: true)]
+    #[Slug(fields: ['name'])] // Gera um slug baseado no campo name
+    private ?string $slug = null;
+
+    #[ORM\Column]
+    #[Timestampable(on: 'update')] // Adiciona a data de atualização automaticamente
+    private ?\DateTimeImmutable $updatedAt = null;
+
+    #[ORM\Column]
+    #[Timestampable(on: 'create')] // Adiciona a data de criação automaticamente
+    private ?\DateTimeImmutable $createdAt = null;
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): static
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getClass(): ?string
+    {
+        return $this->class;
+    }
+
+    public function setClass(string $class): static
+    {
+        $this->class = $class;
+
+        return $this;
+    }
+
+    public function getCaptain(): ?string
+    {
+        return $this->captain;
+    }
+
+    public function setCaptain(string $captain): static
+    {
+        $this->captain = $captain;
+
+        return $this;
+    }
+
+    public function getStatus(): ?StarshipStatusEnum
+    {
+        return $this->status;
+    }
+
+    public function setStatus(StarshipStatusEnum $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getArrivedAt(): ?\DateTimeImmutable
+    {
+        return $this->arrivedAt;
+    }
+
+    public function setArrivedAt(\DateTimeImmutable $arrivedAt): static
+    {
+        $this->arrivedAt = $arrivedAt;
+
+        return $this;
+    }
+
+    public function getStatusString(): string
+    {
+        return $this->status->value;
+    }
+
+    public function getStatusImageFilename(): string
+    {
+        return match ($this->status) {
+            StarshipStatusEnum::WAITING => 'images/status-waiting.png',
+            StarshipStatusEnum::IN_PROGRESS => 'images/status-in-progress.png',
+            StarshipStatusEnum::COMPLETED => 'images/status-complete.png',
+        };
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(?string $slug): static
+    {
+        $this->slug = $slug;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?\DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+}
+```
+
+- Note que usamos a anotação Slug para gerar um slug baseado no campo name e a anotação Timestampable para gerar os campos updatedAt e createdAt automaticamente.
