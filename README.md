@@ -1402,3 +1402,6 @@ class MainController extends AbstractController
 ```
 
 - Note que usamos o retorno do método findIncomplete para paginar os resultados. O método setMaxPerPage é utilizado para definir a quantidade de registros por página e o método setCurrentPage é utilizado para definir a página atual. Além disso, foi injetado via constutor o service Request para pegar o parâmetro page da url. Por fim, foi utilizado o método hasNextPage e hasPreviousPage para verificar se existe uma próxima página e uma página anterior, respectivamente.
+
+- Para adicionar novos campos a entidade, basta executar o comando `symfony console make:entity nome_da_entidade` e prossegui com as instruções.
+- Foram adicionados 3 novos campos na tabela, slug, updated_at e created_at, após a criação desses 3 novos campos foi executado o comando `symfony console make:migration` para criar a migração e em seguida o comando `symfony console doctrine:migrations:migrate` para aplicar a migração.
