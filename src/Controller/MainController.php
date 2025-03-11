@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Starship;
 use App\Repository\StarshipRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -17,10 +18,12 @@ class MainController extends AbstractController
         StarshipRepository $repository,
         HttpClientInterface $client,
         CacheInterface $issLocationPool,
+        Request $request,
     ): Response {
         // Busca todos os registros da entidade Starship
         $ships = $repository->findIncomplete();
-
+        $ships->setMaxPerPage(5); # Seta a quantidade de registros por página
+        $ships->setCurrentPage($request->query->get('page', 1)); # Seta a página atual, caso não exista, seta como 1
         $myShip = $repository->findMyShip();
 
         // Primeiro argumento é a chave do cache e o segundo é uma função anônima que retorna os dados da requisição

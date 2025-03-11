@@ -1207,3 +1207,198 @@ class AppFixtures extends Fixture
 ```
 
 - Para rodar as fixtures, basta digitar `symfony console doctrine:fixtures:load`.
+
+- Para aplicar paginação na nossa aplicação, podemos utilizar dois pacotes chamados `babdev/pagerfanta-bundle e pagerfanta/doctrine-orm-adapter`. Para instalar, basta digitar `composer require babdev/pagerfanta-bundle pagerfanta/doctrine-orm-adapter`. O código final é dado por:
+```php
+<?php
+
+namespace App\Repository;
+
+use App\Entity\Starship;
+use App\Entity\StarshipStatusEnum;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+use Pagerfanta\Doctrine\ORM\QueryAdapter;
+use Pagerfanta\Pagerfanta;
+
+/**
+ * @extends ServiceEntityRepository<Starship>
+ */
+class StarshipRepository extends ServiceEntityRepository
+{
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, Starship::class);
+    }
+
+    public function findMyShip(): Starship
+    {
+        return $this->findAll()[0];
+    }
+
+    /**
+     * @return Starship[]
+     */
+    public function findIncomplete(): Pagerfanta
+    {
+        $query = $this->createQueryBuilder('e')
+            ->where('e.status != :status')
+            ->orderBy('e.arrivedAt', 'DESC')
+            ->setParameter('status', StarshipStatusEnum::COMPLETED)
+            ->getQuery();
+
+        return new Pagerfanta(new QueryAdapter($query));
+    }
+
+    //    /**
+    //     * @return Starship[] Returns an array of Starship objects
+    //     */
+    //    public function findByExampleField($value): array
+    //    {
+    //        return $this->createQueryBuilder('s')
+    //            ->andWhere('s.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->orderBy('s.id', 'ASC')
+    //            ->setMaxResults(10)
+    //            ->getQuery()
+    //            ->getResult()
+    //        ;
+    //    }
+
+    //    public function findOneBySomeField($value): ?Starship
+    //    {
+    //        return $this->createQueryBuilder('s')
+    //            ->andWhere('s.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->getQuery()
+    //            ->getOneOrNullResult()
+    //        ;
+    //    }
+}
+
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Starship;
+use App\Repository\StarshipRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+class MainController extends AbstractController
+{
+    #[Route('/', name: 'app_main_homepage')]
+    public function homepage(
+        StarshipRepository $repository,
+        HttpClientInterface $client,
+        CacheInterface $issLocationPool,
+        Request $request,
+    ): Response {
+        // Busca todos os registros da entidade Starship
+        $ships = $repository->findIncomplete();
+        $ships->setMaxPerPage(5); # Seta a quantidade de registros por página
+        $ships->setCurrentPage($request->query->get('page', 1)); # Seta a página atual, caso não exista, seta como 1
+        $myShip = $repository->findMyShip();
+
+        // Primeiro argumento é a chave do cache e o segundo é uma função anônima que retorna os dados da requisição
+        $issData = $issLocationPool->get('iss_location_data', function () use ($client): array {
+            $response = $client->request('GET', 'https://api.wheretheiss.at/v1/satellites/25544');
+
+            return $response->toArray();
+        });
+
+        return $this->render('main/homepage.html.twig', [
+            'myShip' => $myShip,
+            'ships' => $ships,
+            'issData' => $issData,
+        ]);
+    }
+}
+
+{% extends 'base.html.twig' %}
+
+{% block title %}Starshop: Beam up some parts!{% endblock %}
+
+{% block body %}
+    <main class="flex flex-col lg:flex-row">
+        {{ include('main/_shipStatusAside.html.twig') }}
+
+        <div class="px-12 pt-10 w-full">
+            <h1 class="text-4xl font-semibold mb-3">
+                Ship Repair Queue
+            </h1>
+            <div class="text-slate-400 mb-4">
+                <!-- Display the number of results and the current page -->
+                {{ ships.nbResults }} (Page {{ ships.currentPage }} of {{ ships.nbPages }})
+            </div>
+
+            <div class="space-y-5">
+                {% for ship in ships %}
+                    <div class="bg-[#16202A] rounded-2xl pl-5 py-5 pr-11 flex flex-col min-[1174px]:flex-row min-[1174px]:justify-between">
+                    <div class="flex justify-center min-[1174px]:justify-start">
+                        <img class="h-[83px] w-[84px]" src="{{ asset(ship.statusImageFilename) }}" alt="{{ ship.statusString }}">
+                        <div class="ml-5">
+                            <div class="rounded-2xl py-1 px-3 flex justify-center w-32 items-center bg-amber-400/10">
+                                <div class="rounded-full h-2 w-2 bg-amber-400 blur-[1px] mr-2"></div>
+                                <p class="uppercase text-xs text-nowrap">{{ ship.statusString }}</p>
+                            </div>
+                            <h4 class="text-[22px] pt-1 font-semibold">
+                                <a
+                                        class="hover:text-slate-200"
+                                        href="{{ path('app_starship_show', { id: ship.id }) }}"
+                                >{{ ship.name }}</a>
+                            </h4>
+                            <div>
+                                Arrived at: {{ ship.arrivedAt|ago }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-center min-[1174px]:justify-start mt-2 min-[1174px]:mt-0 shrink-0">
+                        <div class="border-r border-white/20 pr-8">
+                            <p class="text-slate-400 text-xs">Captain</p>
+                            <p class="text-xl">{{ ship.captain }}</p>
+                        </div>
+
+                        <div class="pl-8 w-[100px]">
+                            <p class="text-slate-400 text-xs">Class</p>
+                            <p class="text-xl">{{ ship.class }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if ships.haveToPaginate %}
+                <div class="flex justify-around mt-3 underline font-semibold">
+                    {% if ships.hasPreviousPage %}
+                        <a href="{{ path('app_main_homepage', {page: ships.getPreviousPage}) }}">&lt; Previous</a>
+                    {% endif %}
+                    {% if ships.hasNextPage %}
+                        <a href="{{ path('app_main_homepage', {page: ships.getNextPage}) }}">Next &gt;</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <p class="text-lg mt-5 text-center md:text-left">
+                Looking for your next galactic ride?
+                <a href="#" class="underline font-semibold">Browse the {{ ships|length * 10 }} starships for sale!</a>
+            </p>
+
+            <div>
+                <h2 class="text-4xl font-semibold my-8">ISS Location</h2>
+                <p>Updated at: {{ issData.timestamp|date }}</p>
+                <p>Altitude: {{ issData.altitude }}</p>
+                <p>Latitude {{ issData.altitude }}</p>
+                <p>Longitude: {{ issData.longitude }}</p>
+                <p>Visibility: {{ issData.visibility }}</p>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+```
+
+- Note que usamos o retorno do método findIncomplete para paginar os resultados. O método setMaxPerPage é utilizado para definir a quantidade de registros por página e o método setCurrentPage é utilizado para definir a página atual. Além disso, foi injetado via constutor o service Request para pegar o parâmetro page da url. Por fim, foi utilizado o método hasNextPage e hasPreviousPage para verificar se existe uma próxima página e uma página anterior, respectivamente.
