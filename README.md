@@ -640,3 +640,6 @@ class MainController extends AbstractController
 - Note que os dados são armazenados no cache e limpos após 5 segundos, ou seja, após 5 segundos os dados são atualizados.
 - Para visualizar a lista de cache's disponíveis basta rodar o comando `./bin/console cache:pool:list`.
 - Para limpar o cache manualmente basta executar o comando `./bin/console cache:pool:clear cache.app` sendo cache.app o nome do cache.
+
+- E se quisermos setar configurações específicas no nossos bundles? Isso é possível. Em `config/packages` temos arquivos de configuração de cada bundle. No caso do arquivo framework.yaml temos as configurações do framework, por exemplo, a session.
+- O comando `./bin/console debug:console framework` exibe todas as configurações disponíveis no arquivo framework.yaml. Se quisermos visualizar todas as informações completas basta rodar o comando `./bin/console config:dump framework`. Se quisermos ver as configurações responsáveis apenas pelo cache, podemos rodar o comando `./bin/console config:dump framework cache`.
