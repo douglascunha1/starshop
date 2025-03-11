@@ -542,4 +542,53 @@ export default class extends Controller {
 - A maioria desses services são fornecidos através de bundles que são pacotes(ou plugins) que contém services, configurações e funcionalidades.
 - Os bundles são registrados no arquivo bundles.php que contém todos os bundles disponíveis no nosso projeto.
 - Note que no arquivo temos alguns bundles disponíveis apenas para certos ambientes, por exemplo, `Symfony\Bundle\DebugBundle\DebugBundle::class => ['dev' => true]` que é um bundle que só é carregado no ambiente de desenvolvimento.
-`
+
+- Instalando o knplabs/knp-time-bundle para extender funcionalidades no twig, como formatação de datas mais avançadas. Para instalar basta digitar no terminal `composer require knplabs/knp-time-bundle`.
+- Bundles nos fornece services, para saber quais services esse bundle fornece basta digitar no terminal `./bin/console debug:container time`, selecionar a opcao `Knp\Bundle\TimeBundle\DateTimeFormatter` e com isso teremos todas as informações sobre o service. Para saber se esse service pode ser injetado(autowired) basta executar no terminal o comando `./bin/console debug:autowiring time`, caso o service `Knp\Bundle\TimeBundle\DateTimeFormatter` seja exibido, significa que o service pode ser injetado. Mas não só isso, esse bundle possui integração com o twig fornecendo várias outras funcionalidades, por exemplo, o filtro ago que é utilizado para exibir a data em formato de tempo decorrido, por exemplo, `{{ post.publishedAt|ago }}`. Para verificar as funcionalidades disponíveis basta executar o comando `./bin/console debug:twig`.
+
+- No Symfony, temos um service para http client que é um service que faz requisições http. Para instalar o client http basta digitar no terminal `composer require symfony/http-client`.
+- Abaixo temos um exemplo de como utilizar o http client, note que ele é passado via autowiring no construtor da classe, como exemplo estamos fazendo uma requisição para a api que retorna a localização da ISS em tempo real.
+```php
+<?php
+
+namespace App\Controller;
+
+use App\Repository\StarshipRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+class MainController extends AbstractController
+{
+    #[Route('/', name: 'app_main_homepage')]
+    public function homepage(
+        StarshipRepository $starshipRepository,
+        HttpClientInterface $client,
+    ): Response
+    {
+        $ships = $starshipRepository->findAll();
+        $myShip = $ships[array_rand($ships)];
+
+        # Requisição GET para a api
+        $response = $client->request('GET', 'https://api.wheretheiss.at/v1/satellites/25544');
+        $issData = $response->toArray(); # Converte a resposta para um array
+
+        return $this->render('main/homepage.html.twig', [
+            'myShip' => $myShip,
+            'ships' => $ships,
+            'issData' => $issData, # Passa os dados da ISS para a view
+        ]);
+    }
+}
+
+# Exemplo de como utilizar os dados na view do twig.
+<div>
+    <h2 class="text-4xl font-semibold my-8">ISS Location</h2>
+    <p>Time: {{ issData.timestamp|date }}</p>
+    <p>Altitude: {{ issData.altitude }}</p>
+    <p>Latitude {{ issData.altitude }}</p>
+    <p>Longitude: {{ issData.longitude }}</p>
+    <p>Visibility: {{ issData.visibility }}</p>
+</div>
+```
