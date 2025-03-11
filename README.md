@@ -1581,3 +1581,6 @@ class Starship
 ```
 
 - Note que usamos a anotação Slug para gerar um slug baseado no campo name e a anotação Timestampable para gerar os campos updatedAt e createdAt automaticamente.
+- Após isso, execute o comando `symfony console doctrine:fixtures:load` para gear os campos automaticamente.
+- Para visualizar os dados, execute o comando `symfony console doctrine:query:sql 'SELECT name, slug, updated_at, created_at FROM starship'`.
+- Caso um slug já exista, será gerado um slug único, por exemplo, se o slug "hello-world" já existir, será gerado um slug "hello-world-1".
