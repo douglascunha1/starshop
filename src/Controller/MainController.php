@@ -22,8 +22,8 @@ class MainController extends AbstractController
     ): Response {
         // Busca todos os registros da entidade Starship
         $ships = $repository->findIncomplete();
-        $ships->setMaxPerPage(5); # Seta a quantidade de registros por página
-        $ships->setCurrentPage($request->query->get('page', 1)); # Seta a página atual, caso não exista, seta como 1
+        $ships->setMaxPerPage(5); // Seta a quantidade de registros por página
+        $ships->setCurrentPage($request->query->get('page', 1)); // Seta a página atual, caso não exista, seta como 1
         $myShip = $repository->findMyShip();
 
         // Primeiro argumento é a chave do cache e o segundo é uma função anônima que retorna os dados da requisição

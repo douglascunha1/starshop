@@ -1584,3 +1584,151 @@ class Starship
 - Após isso, execute o comando `symfony console doctrine:fixtures:load` para gear os campos automaticamente.
 - Para visualizar os dados, execute o comando `symfony console doctrine:query:sql 'SELECT name, slug, updated_at, created_at FROM starship'`.
 - Caso um slug já exista, será gerado um slug único, por exemplo, se o slug "hello-world" já existir, será gerado um slug "hello-world-1".
+
+- Para ajustar nossa lógica para buscar um recurso usando o slug, basta ajustar o código abaixo:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Entity\Starship;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class StarshipController extends AbstractController
+{
+    #[Route('/starships/{slug}', name: 'app_starship_show')]
+    public function show(
+        #[MapEntity(mapping: ['slug' => 'slug'])] // Mapeia o parâmetro da rota para o atributo da entidade
+        Starship $ship,
+    ): Response {
+        return $this->render('starship/show.html.twig', [
+            'ship' => $ship,
+        ]);
+    }
+}
+
+{% extends 'base.html.twig' %}
+
+{% block title %}Starshop: Beam up some parts!{% endblock %}
+
+{% block body %}
+    <main class="flex flex-col lg:flex-row">
+        {{ include('main/_shipStatusAside.html.twig') }}
+
+        <div class="px-12 pt-10 w-full">
+            <h1 class="text-4xl font-semibold mb-3">
+                Ship Repair Queue
+            </h1>
+            <div class="text-slate-400 mb-4">
+                <!-- Display the number of results and the current page -->
+                {{ ships.nbResults }} (Page {{ ships.currentPage }} of {{ ships.nbPages }})
+            </div>
+
+            <div class="space-y-5">
+                {% for ship in ships %}
+                    <div class="bg-[#16202A] rounded-2xl pl-5 py-5 pr-11 flex flex-col min-[1174px]:flex-row min-[1174px]:justify-between">
+                    <div class="flex justify-center min-[1174px]:justify-start">
+                        <img class="h-[83px] w-[84px]" src="{{ asset(ship.statusImageFilename) }}" alt="{{ ship.statusString }}">
+                        <div class="ml-5">
+                            <div class="rounded-2xl py-1 px-3 flex justify-center w-32 items-center bg-amber-400/10">
+                                <div class="rounded-full h-2 w-2 bg-amber-400 blur-[1px] mr-2"></div>
+                                <p class="uppercase text-xs text-nowrap">{{ ship.statusString }}</p>
+                            </div>
+                            <h4 class="text-[22px] pt-1 font-semibold">
+                                <a
+                                        class="hover:text-slate-200"
+                                        href="{{ path('app_starship_show', { slug: ship.slug }) }}"
+                                >{{ ship.name }}</a>
+                            </h4>
+                            <div>
+                                Arrived at: {{ ship.arrivedAt|ago }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-center min-[1174px]:justify-start mt-2 min-[1174px]:mt-0 shrink-0">
+                        <div class="border-r border-white/20 pr-8">
+                            <p class="text-slate-400 text-xs">Captain</p>
+                            <p class="text-xl">{{ ship.captain }}</p>
+                        </div>
+
+                        <div class="pl-8 w-[100px]">
+                            <p class="text-slate-400 text-xs">Class</p>
+                            <p class="text-xl">{{ ship.class }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if ships.haveToPaginate %}
+                <div class="flex justify-around mt-3 underline font-semibold">
+                    {% if ships.hasPreviousPage %}
+                        <a href="{{ path('app_main_homepage', {page: ships.getPreviousPage}) }}">&lt; Previous</a>
+                    {% endif %}
+                    {% if ships.hasNextPage %}
+                        <a href="{{ path('app_main_homepage', {page: ships.getNextPage}) }}">Next &gt;</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <p class="text-lg mt-5 text-center md:text-left">
+                Looking for your next galactic ride?
+                <a href="#" class="underline font-semibold">Browse the {{ ships|length * 10 }} starships for sale!</a>
+            </p>
+
+            <div>
+                <h2 class="text-4xl font-semibold my-8">ISS Location</h2>
+                <p>Updated at: {{ issData.timestamp|date }}</p>
+                <p>Altitude: {{ issData.altitude }}</p>
+                <p>Latitude {{ issData.altitude }}</p>
+                <p>Longitude: {{ issData.longitude }}</p>
+                <p>Visibility: {{ issData.visibility }}</p>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+<aside
+    class="pb-8 lg:pb-0 lg:w-[411px] shrink-0 lg:block lg:min-h-screen text-white transition-all overflow-hidden px-8 border-b lg:border-b-0 lg:border-r border-white/20 transition-all overflow-hidden"
+    data-controller="closeable"
+>
+    <div class="flex justify-between mt-11 mb-7">
+        <h2 class="text-[32px] font-semibold">My Ship Status</h2>
+        <button data-action="click->closeable#close">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 448 512"><!--!Font Awesome Pro 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc.--><path fill="#fff" d="M384 96c0-17.7 14.3-32 32-32s32 14.3 32 32V416c0 17.7-14.3 32-32 32s-32-14.3-32-32V96zM9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3L109.3 224 288 224c17.7 0 32 14.3 32 32s-14.3 32-32 32l-178.7 0 73.4 73.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0l-128-128z"/></svg>
+        </button>
+    </div>
+
+    <div>
+        <div class="flex flex-col space-y-1.5">
+            <div class="rounded-2xl py-1 px-3 flex justify-center w-32 items-center" style="background: rgba(255, 184, 0, .1);">
+                <div class="rounded-full h-2 w-2 bg-amber-400 blur-[1px] mr-2"></div>
+                <p class="uppercase text-xs">in progress</p>
+            </div>
+            <h3 class="tracking-tight text-[22px] font-semibold">
+                <a class="hover:underline" href="{{ path('app_starship_show', {
+                    slug: myShip.slug
+                }) }}">{{ myShip.name }}</a>
+            </h3>
+        </div>
+        <div class="flex mt-4">
+            <div class="border-r border-white/20 pr-8">
+                <p class="text-slate-400 text-xs">Captain</p>
+                <p class="text-xl">{{ myShip.captain }}</p>
+            </div>
+
+            <div class="pl-8">
+                <p class="text-slate-400 text-xs">Class</p>
+                <p class="text-xl">{{ myShip.class }}</p>
+            </div>
+        </div>
+    </div>
+</aside>
+```
+
+- Note que substituímos o id pelo slug na rota e no href do link. Note também que foi adicionado um MapEntity para mapear o parâmetro da rota para o atributo da entidade.
