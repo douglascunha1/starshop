@@ -679,3 +679,83 @@ when@prod: # Apenas produção
 
 ## Doctrine e Database
 
+- O Doctrine é um ORM (Object-Relational Mapping) para PHP, ou seja, uma biblioteca que facilita o trabalho com bancos de dados relacionais usando objetos PHP.
+- Para instalar o Doctrine, basta digitar o comando `composer require doctrine`. Em seguida, será solicitado a escolha de uma opção, digite `p` e aperte enter.
+- O Doctrine é um alias para o pacote `symfony/orm-pack` que é um pacote que contém vários outros pacotes(dependências) que são necessários para o funcionamento do Doctrine. Um desses pacotes é o doctrine/orm e o doctrine/dbal.
+- Após instalar o doctrine, abra o arquivo .env e note que terá uma seção com os dados a seguir:
+```dotenv
+###> doctrine/doctrine-bundle ###
+# Format described at https://www.doctrine-project.org/projects/doctrine-dbal/en/latest/reference/configuration.html#connecting-using-a-url
+# IMPORTANT: You MUST configure your server version, either here or in config/packages/doctrine.yaml
+#
+# DATABASE_URL="sqlite:///%kernel.project_dir%/var/data.db"
+# DATABASE_URL="mysql://app:!ChangeMe!@127.0.0.1:3306/app?serverVersion=8.0.32&charset=utf8mb4"
+# DATABASE_URL="mysql://app:!ChangeMe!@127.0.0.1:3306/app?serverVersion=10.11.2-MariaDB&charset=utf8mb4"
+DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&charset=utf8"
+###< doctrine/doctrine-bundle ###
+```
+
+- DATABASE_URL é o DSN (Data Source Name) que contém as informações de conexão com o banco de dados, por exemplo, o driver, o host, a porta, o nome do banco de dados, o usuário e a senha.
+- A instalação do Doctrine também cria um arquivo chamado compose.yaml que contém as configurações do Doctrine para utilizar o Docker Compose.
+- Para executar o Container criado, basta digitar no terminal `docker compose up -d`.
+- Mas e os arquivos de configuração da env, como são carregados? Bem, o Symfony carrega todas essas configurações automaticamente. Digite `symfony var:export --multiline` no terminal para ver o que é exportado da env.
+- Para criar o banco de dados, basta digitar `symfony console doctrine:database:create`. Caso dê erro, significa que você já tem um banco de dados chamado app criado.
+- Tabelas são criadas usando entidades, que são classes PHP que representam tabelas no banco de dados, ou seja, dai que vem o termo ORM.
+- Para criar uma entidade(tabela) basta digitar `symfony console make:entity` e seguir as instruções.
+- Após adicionar os campos desejados na entidade, basta digitar `symfony console make:migration` para criar a migração.
+- Para verificar a lista de migrações disponíveis, basta digitar `symfony console doctrine:migrations:list`.
+- Para executar a migração, basta digitar `symfony console doctrine:migrations:migrate`.
+- Para verificar o histórico de versões da migração, basta digitar `symfony console doctrine:query:sql 'select * from doctrine_migration_versions'` no terminal.
+
+- Para inserir dados fakes no banco de dados, podemos utilizar algo chamado fixtures que são classes que inserem dados fakes no banco de dados. Para instalar o pacote de fixtures, basta digitar `composer require orm-fixtures --dev`. Note que instalamos como uma dependência de desenvolvimento.
+- Ao executar o comando `symfony console make:fixtures` será criado um arquivo chamado AppFixtures.php que contém um método chamado load que é responsável por inserir os dados fakes no banco de dados.
+- Abaixo temos um exemplo de como inserir dados fakes no banco de dados.
+```php
+<?php
+
+namespace App\DataFixtures;
+
+use App\Entity\Starship;
+use App\Model\StarshipStatusEnum;
+use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Persistence\ObjectManager;
+
+class AppFixtures extends Fixture
+{
+    public function load(ObjectManager $manager): void
+    {
+        $ship1 = new Starship();
+        $ship1->setName('USS LeafyCruiser (NCC-0001)');
+        $ship1->setClass('Garden');
+        $ship1->setCaptain('Jean-Luc Pickles');
+        $ship1->setStatus(StarshipStatusEnum::IN_PROGRESS);
+        $ship1->setArrivedAt(new \DateTimeImmutable('-1 day'));
+
+        $ship2 = new Starship();
+        $ship2->setName('USS Espresso (NCC-1234-C)');
+        $ship2->setClass('Latte');
+        $ship2->setCaptain('James T. Quick!');
+        $ship2->setStatus(StarshipStatusEnum::COMPLETED);
+        $ship2->setArrivedAt(new \DateTimeImmutable('-1 week'));
+
+        $ship3 = new Starship();
+        $ship3->setName('USS Wanderlust (NCC-2024-W)');
+        $ship3->setClass('Delta Tourist');
+        $ship3->setCaptain('Kathryn Journeyway');
+        $ship3->setStatus(StarshipStatusEnum::WAITING);
+        $ship3->setArrivedAt(new \DateTimeImmutable('-1 month'));
+
+        // Persiste as entidades
+        $manager->persist($ship1);
+        $manager->persist($ship2);
+        $manager->persist($ship3);
+
+        // Salva no banco de dados
+        $manager->flush();
+    }
+}
+```
+
+- Note que instanciamos a entidade Starship 3 vezes e setamos os seus valores, em seguida, usamos o método persist para persistir as entidades e o método flush para salvar no banco de dados.
+- Para executar as fixtures, basta digitar `symfony console doctrine:fixtures:load`.
+- Para verificar se os dados foram inseridos corretamente, basta digitar `symfony console doctrine:query:sql 'select * from starship'`.
