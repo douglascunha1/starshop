@@ -49,9 +49,8 @@ class ShipCheckInCommand extends Command
         // Exibe uma mensagem de confirmação da exclusão
         $io->comment(sprintf('Checking in starship %s', $ship->getName()));
 
-        // Atualiza o status da nave para "WAITING" e define a data de chegada
-        $ship->setArrivedAt(new \DateTimeImmutable('now'));
-        $ship->setStatus(StarshipStatusEnum::WAITING);
+        // Realiza o check-in da nave
+        $ship->checkIn();
 
         // Não precisa adicionar o objeto para ser removido na fila(queue) de remoção, o Symfony já sabe que o objeto foi alterado
         $this->em->flush();
