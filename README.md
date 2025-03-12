@@ -1733,3 +1733,137 @@ class StarshipController extends AbstractController
 
 - Note que substituímos o id pelo slug na rota e no href do link. Note também que foi adicionado um MapEntity para mapear o parâmetro da rota para o atributo da entidade.
 - Algo muito importante é o fato de setarmos manualmente a entidade Starship no método show, isso é necessário para que o mapeamento funcione corretamente. Mas Starship não é um service, como isso pode ser possível? Bem, para resolver isso o Symfony faz uso de algo chamado Controller Value Resolvers que injeta automaticamente a entidade e o repositório da entidade no método show.
+
+- Podemos criar comandos personalizados no Symfony, para isso basta digitar `symfony console make:command nome_do_comando`. Após isso, basta seguir as instruções para criar o comando. Por exemplo, abaixo temos a criação de um comando chamado app:ship:remove que remove um recurso da entidade Starship.
+```bash
+sc make:command
+
+ Choose a command name (e.g. app:victorious-kangaroo):
+ > app:ship:remove
+```
+
+- Em seguida, uma classe chamada ShipRemoveCommand é criada, veja abaixo:
+```php
+<?php
+
+namespace App\Command;
+
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+#[AsCommand(
+    name: 'app:ship:remove',
+    description: 'Add a short description for your command',
+)]
+class ShipRemoveCommand extends Command
+{
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this
+            ->addArgument('arg1', InputArgument::OPTIONAL, 'Argument description')
+            ->addOption('option1', null, InputOption::VALUE_NONE, 'Option description')
+        ;
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $arg1 = $input->getArgument('arg1');
+
+        if ($arg1) {
+            $io->note(sprintf('You passed an argument: %s', $arg1));
+        }
+
+        if ($input->getOption('option1')) {
+            // ...
+        }
+
+        $io->success('You have a new command! Now make it your own! Pass --help to see your options.');
+
+        return Command::SUCCESS;
+    }
+}
+```
+
+- Personalizando nosso comando, temos o seguinte código:
+```php
+<?php
+
+namespace App\Command;
+
+use App\Repository\StarshipRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+#[AsCommand(
+    name: 'app:ship:remove',
+    description: 'Delete a starship',
+)]
+class ShipRemoveCommand extends Command
+{
+    public function __construct(
+        private StarshipRepository $shipRepo,
+        private EntityManagerInterface $em, // Usado para persistir dados
+    ) {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this
+            ->addArgument('slug', InputArgument::REQUIRED, 'The slug of the starship.')
+        ;
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $slug = $input->getArgument('slug');
+        $ship = $this->shipRepo->findOneBy([
+            'slug' => $slug, // Busca a nave pelo slug
+        ]);
+
+        if (!$ship) {
+            $io->error('Starship not found.');
+
+            return Command::FAILURE;
+        }
+
+        // Exibe uma mensagem de confirmação da exclusão
+        $io->comment(sprintf('Removing starship %s', $ship->getName()));
+
+        // Adiciona o objeto para ser removido na fila(queue) de remoção
+        $this->em->remove($ship);
+        // Executa a remoção
+        $this->em->flush();
+
+        // Exibe uma mensagem de sucesso
+        $io->success('Starship removed.');
+
+        return Command::SUCCESS;
+    }
+}
+```
+
+- Executando no terminal a remoção de um recurso, temos o seguinte comando:
+```bash
+symfony console app:ship:remove uss-leafycruiser-ncc-0001
+```
+
+- Após a execução do comando, o recurso é removido do banco de dados(caso exista). Caso não exista, é exibida uma mensagem de erro.
+- Note que usamos o repositório para fazer a busca do recurso e o EntityManager para persistir a remoção do recurso.
