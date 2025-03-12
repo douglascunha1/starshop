@@ -1867,3 +1867,86 @@ symfony console app:ship:remove uss-leafycruiser-ncc-0001
 
 - Após a execução do comando, o recurso é removido do banco de dados(caso exista). Caso não exista, é exibida uma mensagem de erro.
 - Note que usamos o repositório para fazer a busca do recurso e o EntityManager para persistir a remoção do recurso.
+
+- Criando outro comando para atualizar um recurso, temos o seguinte código:
+```bash
+sc make:command
+
+ Choose a command name (e.g. app:delicious-puppy):
+ > app:ship:check-in
+```
+
+- Em seguida, a classe ShipCheckInCommand é criada, após personalização ela ficou da seguinte forma:
+```php
+<?php
+
+namespace App\Command;
+
+use App\Entity\StarshipStatusEnum;
+use App\Repository\StarshipRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+#[AsCommand(
+    name: 'app:ship:check-in',
+    description: 'Check-in ship',
+)]
+class ShipCheckInCommand extends Command
+{
+    public function __construct(
+        private StarshipRepository $shipRepo,
+        private EntityManagerInterface $em,
+    ) {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this
+            ->addArgument('slug', InputArgument::REQUIRED, 'The slug of the starship.')
+        ;
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $slug = $input->getArgument('slug');
+        $ship = $this->shipRepo->findOneBy([
+            'slug' => $slug, // Busca a nave pelo slug
+        ]);
+
+        if (!$ship) {
+            $io->error('Starship not found.');
+
+            return Command::FAILURE;
+        }
+
+        // Exibe uma mensagem de confirmação da exclusão
+        $io->comment(sprintf('Checking in starship %s', $ship->getName()));
+
+        // Atualiza o status da nave para "WAITING" e define a data de chegada
+        $ship->setArrivedAt(new \DateTimeImmutable('now'));
+        $ship->setStatus(StarshipStatusEnum::WAITING);
+
+        // Não precisa adicionar o objeto para ser removido na fila(queue) de remoção, o Symfony já sabe que o objeto foi alterado
+        $this->em->flush();
+
+        // Exibe uma mensagem de sucesso
+        $io->success('Starship checked-in.');
+
+        return Command::SUCCESS;
+    }
+}
+```
+
+- Executando o comando no terminal, temos o seguinte comando:
+```bash
+sc app:ship:check-in lunar-marauder-1
+```
+
+- Ou seja, o comando acima atualiza o status da nave para "WAITING" e define a data de chegada como a data atual.
